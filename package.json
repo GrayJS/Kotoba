@@ -1,0 +1,91 @@
+{
+  "name": "kotoba-subtitles",
+  "version": "0.3.0-beta.1",
+  "private": true,
+  "type": "module",
+  "description": "Multilingual desktop subtitles with local Whisper and configurable translation for Windows",
+  "author": "Kotoba",
+  "main": "dist/main.cjs",
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "build": "node scripts/build.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test tests/*.test.ts",
+    "test:python": ".venv\\Scripts\\python.exe -m unittest discover -s tests -p test_*.py",
+    "build:native": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-native.ps1",
+    "setup:python": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/setup-python.ps1",
+    "setup:electron": "node node_modules/electron/install.js",
+    "build:worker": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-worker.ps1",
+    "dist": "npm run build && electron-builder --win nsis --x64",
+    "smoke": "node scripts/smoke.mjs"
+  },
+  "dependencies": {
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "latest",
+    "electron": "45.2.2",
+    "electron-builder": "^26.0.0",
+    "esbuild": "latest",
+    "playwright": "latest",
+    "tsx": "latest",
+    "typescript": "latest",
+    "vite": "latest"
+  },
+  "build": {
+    "appId": "local.kotoba.subtitles",
+    "productName": "Kotoba 字幕",
+    "artifactName": "Kotoba-Setup-${version}-${arch}.${ext}",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "config.example.json",
+        "to": "config.example.json"
+      },
+      {
+        "from": "build/native",
+        "to": "native",
+        "filter": [
+          "*.exe"
+        ]
+      },
+      {
+        "from": "build/worker/kotoba-worker",
+        "to": "worker"
+      },
+      {
+        "from": "build/gpu",
+        "to": "gpu"
+      },
+      {
+        "from": "THIRD_PARTY_NOTICES.md",
+        "to": "THIRD_PARTY_NOTICES.md"
+      }
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "assets/icon.ico",
+      "signExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "deleteAppDataOnUninstall": false
+    },
+    "asar": true
+  }
+}

@@ -1,0 +1,5 @@
+faster-whisper==1.2.1
+av==16.1.0
+numpy>=2.2,<3
+soxr>=0.5,<2
+pyinstaller>=6.16,<7

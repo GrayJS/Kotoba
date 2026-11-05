@@ -1,0 +1,95 @@
+.app-shell {
+  height: 100vh;
+  overflow: hidden;
+}
+.workspace {
+  height: calc(100vh - 76px);
+  min-height: 0;
+}
+.sidebar,
+.main-content {
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #3b4934 transparent;
+}
+.sidebar-bottom {
+  min-height: 40px;
+}
+.overlay-subtitle p {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+.overlay-live-label {
+  display: block;
+  font-size: 10px;
+  line-height: 1.4;
+  color: #c9ef93;
+  opacity: .75;
+  margin-bottom: 3px;
+}
+.settings-card { border: 1px solid var(--border); border-radius: 9px; background: var(--surface); }
+:root { --surface: #151915; --field: #101410; --border: #ffffff20; --muted: #a4b09b; --accent: #c9ef93; }
+select, input:not([type="range"]):not([type="checkbox"]) { font: inherit; color: inherit; background: var(--field); border: 1px solid var(--border); border-radius: 5px; padding: 8px; min-width: 0; width: 100%; }
+select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.theme-picker { display: flex; align-items: center; gap: 8px; color: var(--muted); }
+.theme-picker select { width: auto; }
+.language-settings { display: flex; align-items: center; gap: 16px; padding: 13px 16px; margin-bottom: 18px; }
+.language-settings label { display: grid; gap: 7px; flex: 1; font-size: 11px; }
+.language-note { color: var(--muted); font-size: 10px; line-height: 1.7; }
+.language-note small { display: block; }
+.subtitle-workspace { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(245px, 1fr); gap: 16px; align-items: start; }
+.subtitle-workspace .appearance-panel { margin: 0; }
+.subtitle-workspace .sliders { grid-template-columns: 1fr; gap: 23px; padding: 18px; }
+.subtitle-workspace .bilingual-option > div { display: grid; gap: 6px; }
+.preview-toolbar { flex-wrap: wrap; row-gap: 13px; }
+.preview-toolbar > span { max-width: 100%; }
+.preview-toolbar > div { flex-wrap: wrap; }
+.download-status { font-size: 11px; color: var(--muted); line-height: 1.7; margin: 9px 0 14px; overflow-wrap: anywhere; }
+.download-status progress { display: block; width: 100%; height: 7px; accent-color: var(--accent); margin: 8px 0; }
+.download-status.failure { color: #e3b18d; }
+.service-panel { margin-top: 18px; }
+.service-panel summary { padding: 15px 17px; cursor: pointer; font-size: 13px; }
+.service-panel summary span { font-size: 11px; margin-left: 14px; color: var(--muted); }
+.service-panel form { padding: 0 17px 17px; }
+fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 5px 0 16px; }
+.form-grid label { display: grid; gap: 7px; font-size: 12px; min-width: 0; }
+.form-grid .checkbox-label { display: flex; align-items: center; }
+.form-actions { display: flex; align-items: center; gap: 15px; margin-top: 16px; flex-wrap: wrap; }
+.form-actions > span { color: var(--muted); font-size: 11px; }
+.primary-small { background: var(--accent); color: #203019; border-radius: 6px; padding: 10px 14px; font-weight: 600; }
+.overlay-subtitle, .overlay-drag { -webkit-app-region: no-drag; cursor: move; user-select: none; touch-action: none; }
+.overlay-subtitle button, .overlay-drag button { -webkit-app-region: no-drag; }
+.overlay-subtitle p.source-text { font-weight: 400; color: #d9dfd0; line-height: 1.7; margin-bottom: 2px; }
+.subtitle-history p.source-text { color: #9eaf93; font-size: 10px; }
+/* Subtitle colors and opacity deliberately stay independent of the application theme. */
+:root[data-theme="light"] { color-scheme: light; color: #203024; background: #f3f5f0; --surface: #ffffff; --field: #f8faf6; --border: #c8d1c4; --muted: #52634d; --accent: #477b25; }
+:root.overlay-document[data-theme] { background: transparent; }
+[data-theme="light"] .sidebar { background: #eaf0e5; }
+[data-theme="light"] :is(.app-header, .sidebar, .sidebar-divider, .brand-caption, .panel-heading, .bilingual-option, .subtitle-history > div) { border-color: var(--border); }
+[data-theme="light"] :is(.preview-section, .appearance-panel, .session-panel) { background: var(--surface); border-color: var(--border); }
+[data-theme="light"] :is(.muted, .brand-caption, .privacy, .connection-badge, .section-label, .app-name small, .empty-apps, .empty-apps small, .input-meter, .source-note, .model-block span, .model-icon, .setup-status, .config-actions button, .config-location, .sidebar-bottom, .eyebrow, .page-heading p, .panel-heading, .panel-heading svg, .text-button, .sliders label > span, .sliders small, .bilingual-option strong, .bilingual-option span, .session-metrics, .session-metrics b, .empty-session, .history-time, .subtitle-history p, .main-footer, .main-footer kbd, .preview-toolbar, .preview-toolbar button) { color: #455a3d; }
+[data-theme="light"] :is(.brand-dot, h1 span, .loading) { color: #477b25; }
+[data-theme="light"] :is(.secondary-button, .model-icon, .app-avatar, .empty-apps, .connection-badge) { border-color: #b9c7b2; }
+[data-theme="light"] :is(.device-selector, .app-avatar) { background: #f8faf6; border-color: #c8d1c4; }
+[data-theme="light"] .device-selector button { color: #52634d; }
+[data-theme="light"] .device-selector .chosen { background: #d8e7cc; color: #244817; }
+[data-theme="light"] .audio-app.selected { background: #dbeacb; border-color: #82a462; }
+[data-theme="light"] .audio-app:hover, [data-theme="light"] .secondary-button:hover { background: #e1ebd9; }
+[data-theme="light"] .connection-badge.ready { color: #315c19; background: #e0efd4; }
+[data-theme="light"] .connection-badge.ready i { background: #477b25; }
+[data-theme="light"] .start-button:disabled { color: #52634d; background: #d4dfcd; }
+[data-theme="light"] .sliders b { color: #203024; }
+[data-theme="light"] :is(.notice, .setup-status.failure, .download-status.failure) { color: #844015; border-color: #d1b18a; background: #fff5e9; }
+[data-theme="light"] .primary-small { color: #fff; }
+[data-theme="light"] .preview-label { color: #455a3d !important; }
+@media (max-width: 1120px) {
+  .subtitle-workspace { grid-template-columns: 1fr; }
+  .subtitle-workspace .sliders { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .subtitle-workspace .bilingual-option > div { display: flex; }
+  .language-note { display: none; }
+  .header-right { gap: 10px; }
+  .privacy { display: none; }
+}

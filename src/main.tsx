@@ -132,7 +132,12 @@ function App() {
         <div className={'setup-status ' + (state.setup.error ? 'failure' : '')}><i className={state.setup.busy ? 'spinner' : 'dot'} />{state.setup.label}</div>
         <div className="config-actions"><button onClick={() => void run(() => window.kotoba.openConfig())}><Icon name="settings" size={13} />打开配置</button><button onClick={() => void run(() => window.kotoba.openModels())}><Icon name="folder" size={13} />模型目录</button></div>
         <span className="config-location" title={state.configPath}>{state.configPath}</span>
-        <div className="sidebar-bottom"><span className="tiny mono">KOTOBA / v0.3.0 Beta</span><span>音频与字幕不落盘</span></div>
+        <section className="update-panel" aria-label="版本与更新">
+          <div className="update-heading"><span className="mono">v{state.update.currentVersion}</span><button className="text-button" disabled={state.update.status === 'checking'} onClick={() => void run(() => window.kotoba.checkUpdates())}>{state.update.status === 'checking' ? '正在检查更新…' : state.update.status === 'error' ? '重试检查更新' : '检查更新'}</button></div>
+          <p role="status" className={state.update.status === 'error' ? 'failure' : ''}>{state.update.message}</p>
+          {state.update.status === 'available' && <div className="update-links"><button onClick={() => void run(() => window.kotoba.openUpdate('release'))}>查看发布页</button>{state.update.downloadUrl && <button onClick={() => void run(() => window.kotoba.openUpdate('download'))}>下载安装包</button>}<span>下载后运行安装包升级，保留现有模型与配置。</span></div>}
+        </section>
+        <div className="sidebar-bottom"><span className="tiny mono">KOTOBA</span><span>音频与字幕不落盘</span></div>
       </aside>
       <main className="main-content">
         <div className="page-heading"><div><div className="eyebrow">LISTEN. UNDERSTAND.</div><h1>听见声音，看懂每一句<span>。</span></h1><p>左侧选择应用开始监听，在这里设置语言和字幕。</p></div></div>

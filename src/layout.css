@@ -15,6 +15,15 @@
 .sidebar-bottom {
   min-height: 40px;
 }
+.update-panel { border-top: 1px solid var(--border); margin-top: 18px; padding-top: 14px; font-size: 11px; }
+.update-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.update-heading button { font-size: 12px; color: var(--accent); padding: 5px 0; }
+.update-panel p { color: var(--muted); font-size: 11px; line-height: 1.7; margin-top: 6px; overflow-wrap: anywhere; }
+.update-panel p.failure { color: #e3b18d; }
+.update-links { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 9px; }
+.update-links button { color: var(--accent); border-bottom: 1px solid var(--border); padding: 3px 0; }
+.update-links span { font-size: 10px; color: var(--muted); line-height: 1.7; }
+[data-theme="light"] .update-panel p.failure { color: #844015; }
 .overlay-subtitle p {
   display: -webkit-box;
   -webkit-box-orient: vertical;

@@ -1,6 +1,6 @@
 {
   "name": "kotoba-subtitles",
-  "version": "0.3.0-beta.1",
+  "version": "0.3.0-beta.2",
   "private": true,
   "type": "module",
   "description": "Multilingual desktop subtitles with local Whisper and configurable translation for Windows",

@@ -15,6 +15,8 @@ const bridge: Bridge = {
   saveService: (value: ServiceUpdate) => ipcRenderer.invoke('config:service', value),
   overlayRegions: regions => ipcRenderer.invoke('overlay:regions', regions),
   dragOverlay: phase => ipcRenderer.invoke('overlay:drag', phase),
+  checkUpdates: () => ipcRenderer.invoke('updates:check'),
+  openUpdate: target => ipcRenderer.invoke('updates:open', target),
   onState: callback => {
     const listener = (_event: Electron.IpcRendererEvent, state: AppState) => callback(state);
     ipcRenderer.on('state:changed', listener);

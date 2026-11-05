@@ -12,6 +12,7 @@ import { TranslationQueue, percentile } from './pipeline';
 import { checkOllama, translate } from './ollama';
 import { WorkerClient } from './worker-client';
 import { receiveTranscript, receiveTranslation } from './subtitles';
+import { UpdateChecker } from './updates';
 
 app.setName('Kotoba');
 app.setAppUserModelId('local.kotoba.subtitles');
@@ -46,11 +47,13 @@ const state: AppState = {
   setup: { stage: 'idle', label: '等待检查本地模型', busy: false }, ready: false, gpuChecked: false,
   deviceChecked: null, warning: null, configPath, modelPath: '', ollamaUrl: '', ollamaModel: '',
   download: { busy: false, prepared: false, stage: 'idle', label: '尚未准备识别模型' },
+  update: { currentVersion: app.getVersion(), status: 'idle', message: '手动检查 GitHub 更新（包含 Beta）' },
   languages: { ...DEFAULT_CONFIG.languages },
   service: { ...DEFAULT_CONFIG.translation, ollama: { ...DEFAULT_CONFIG.ollama }, hasKey: false, local: true },
   resolvedTheme: 'dark',
   metrics: { count: 0, p50: 0, p95: 0, dropped: 0 },
 };
+const updates = new UpdateChecker(app.getVersion(), value => { state.update = value; broadcast(); }, url => shell.openExternal(url));
 function log(event: string, meta: Record<string, unknown> = {}) {
   try {
     mkdirSync(path.dirname(logFile), { recursive: true });
@@ -367,6 +370,8 @@ function registerIpc() {
   };
   ipcMain.handle('config:languages', controlOnly(saveLanguages));
   ipcMain.handle('config:service', controlOnly(saveService));
+  ipcMain.handle('updates:check', controlOnly(() => updates.check()));
+  ipcMain.handle('updates:open', controlOnly(target => updates.open(target)));
   ipcMain.handle('overlay:regions', (event, regions) => {
     if (event.sender.id !== overlay?.webContents.id || event.senderFrame !== event.sender.mainFrame) throw new Error('IPC access denied');
     if (!Array.isArray(regions) || regions.length > 2 || regions.some(r => !r || ['x', 'y', 'width', 'height'].some(k => !Number.isFinite(r[k]) || Math.abs(r[k]) > 10000))) throw new Error('Invalid overlay regions');

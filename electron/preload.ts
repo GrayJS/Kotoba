@@ -17,6 +17,9 @@ const bridge: Bridge = {
   dragOverlay: phase => ipcRenderer.invoke('overlay:drag', phase),
   checkUpdates: () => ipcRenderer.invoke('updates:check'),
   openUpdate: target => ipcRenderer.invoke('updates:open', target),
+  detectLocalSetup: () => ipcRenderer.invoke('local-setup:detect'),
+  prepareLocalSetup: () => ipcRenderer.invoke('local-setup:prepare'),
+  cancelLocalSetup: () => ipcRenderer.invoke('local-setup:cancel'),
   onState: callback => {
     const listener = (_event: Electron.IpcRendererEvent, state: AppState) => callback(state);
     ipcRenderer.on('state:changed', listener);

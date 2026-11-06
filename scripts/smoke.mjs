@@ -38,6 +38,7 @@ try {
   if (!overlay) throw new Error('Overlay window missing');
   await overlay.getByRole('button', { name: '完成', exact: true }).waitFor();
   await overlay.getByRole('button', { name: '完成', exact: true }).click();
+  for (let i = 0; i < 150 && (await page.evaluate(() => window.kotoba.getState())).localSetup?.busy; i++) await new Promise(resolve => setTimeout(resolve, 50));
   await page.evaluate(() => window.kotoba.checkDevice());
   let checked;
   for (let i = 0; i < 1300; i++) {

@@ -42,6 +42,23 @@ const seconds = (n: number) => n ? (n / 1000).toFixed(1) + 's' : '—';
 function Toggle({ label, checked, onChange, disabled = false }: { label: string; checked: boolean; onChange: (checked: boolean) => void; disabled?: boolean }) {
   return <button className={'toggle ' + (checked ? 'on' : '')} role="switch" aria-label={label} aria-checked={checked} disabled={disabled} onClick={() => onChange(!checked)}><span /></button>;
 }
+const bytes = (value: number) => value < 1024 ? value + ' B' : value < 1024 ** 2 ? (value / 1024).toFixed(1) + ' KB' : value < 1024 ** 3 ? (value / 1024 ** 2).toFixed(1) + ' MB' : (value / 1024 ** 3).toFixed(2) + ' GB';
+function LocalSetupCard({ state, run }: { state: AppState; run: (action: () => Promise<unknown>) => Promise<void> }) {
+  const setup = state.localSetup;
+  const blocked = state.running || state.setup.busy || state.download.busy || setup.busy;
+  return <section className={'settings-card local-setup-card ' + (setup.status === 'error' ? 'setup-error' : '')} aria-label="本机翻译环境">
+    <div className="local-setup-heading"><strong>{setup.status === 'custom' ? '翻译服务' : 'Ollama + Index 本机翻译'}</strong><span>{setup.status === 'ready' ? '已准备' : setup.status === 'installing' ? '准备中' : ''}</span></div>
+    <p role="status">{setup.label}</p>
+    {setup.error && <p className="failure" role="alert">{setup.error}</p>}
+    {setup.busy && <div className="local-setup-progress"><progress aria-label="本机环境安装进度" max="100" value={setup.percent} /><span>{setup.percent === undefined ? '正在处理，请稍候…' : `${setup.percent}%`}{setup.completedBytes !== undefined && setup.totalBytes ? ` · ${bytes(setup.completedBytes)} / ${bytes(setup.totalBytes)}` : ''}</span></div>}
+    <div className="local-setup-actions">
+      {setup.eligible && setup.status !== 'ready' && <button className="primary-small" disabled={blocked} onClick={() => void run(() => window.kotoba.prepareLocalSetup())}>{setup.busy ? '正在准备…' : setup.status === 'error' ? '重试一键安装并自动配置' : setup.hasRuntime ? '一键准备 Index 并自动配置' : '一键安装 Ollama + Index 并自动配置'}</button>}
+      <button className="text-button" disabled={setup.busy || state.setup.busy || state.download.busy} onClick={() => void run(() => window.kotoba.detectLocalSetup())}>重新检测本机环境</button>
+      {setup.busy && ['runtime-download', 'model-pull'].includes(setup.stage) && <button className="text-button" onClick={() => void run(() => window.kotoba.cancelLocalSetup())}>取消下载</button>}
+    </div>
+    {setup.eligible && setup.status !== 'ready' && !setup.busy && <small>按需下载官方 Ollama 安装包与 Index 模型；已有组件会复用。完成后自动配置本机地址与模型，Whisper 仍在左侧单独准备。</small>}
+  </section>;
+}
 function ServiceForm({ state, run }: { state: AppState; run: (action: () => Promise<unknown>) => Promise<void> }) {
   const [draft, setDraft] = useState<ServiceSettings>(() => structuredClone(state.service));
   const [apiKey, setApiKey] = useState('');
@@ -49,7 +66,7 @@ function ServiceForm({ state, run }: { state: AppState; run: (action: () => Prom
   const [saved, setSaved] = useState(false);
   const provider = draft.provider;
   const active = provider === 'ollama' ? draft.ollama : draft.compatible;
-  const busy = state.setup.busy || state.download.busy;
+  const busy = state.setup.busy || state.download.busy || state.localSetup.busy;
   const patch = (value: Partial<ServiceSettings['ollama']>) => { setSaved(false); setDraft(old => ({ ...old, [provider === 'ollama' ? 'ollama' : 'compatible']: { ...active, ...value } })); };
   useEffect(() => { setDraft(structuredClone(state.service)); }, [JSON.stringify(state.service)]);
   return <details className="settings-card service-panel">
@@ -66,7 +83,7 @@ function ServiceForm({ state, run }: { state: AppState; run: (action: () => Prom
             <label className="checkbox-label"><input type="checkbox" checked={clearKey} onChange={e => { setClearKey(e.target.checked); setApiKey(''); }} />清除该地址已保存的密钥</label>
           </>}
         </div>
-        <p className="muted small">{provider === 'ollama' ? '默认本机地址 http://127.0.0.1:11434。请先在 Ollama 中安装 Index 翻译模型。远程地址会接收识别后的文字。' : '填写兼容 Chat Completions 的 API 前缀（通常以 /v1 结尾），程序追加 /chat/completions。远端服务会接收原文与最近两句上下文；音频仍在本机识别。密钥仅在本机加密保存。'}</p>
+        <p className="muted small">{provider === 'ollama' ? '默认本机地址 http://127.0.0.1:11434。默认本机环境可在上方一键安装并自动配置；自定义服务和模型会保留。远程地址会接收识别后的文字。' : '填写兼容 Chat Completions 的 API 前缀（通常以 /v1 结尾），程序追加 /chat/completions。远端服务会接收原文与最近两句上下文；音频仍在本机识别。密钥仅在本机加密保存。'}</p>
         <div className="form-actions"><button className="primary-small" type="submit">保存服务配置</button><button type="button" className="secondary-button" onClick={() => void run(() => window.kotoba.checkDevice())}>检查已保存的连接</button><span role="status">{saved ? '已保存，请检查连接' : state.running ? '保存会暂停当前监听' : ''}</span></div>
       </fieldset>
     </form>
@@ -103,7 +120,7 @@ function App() {
   const history = state.history || [];
   const issue = error || state.download.error || state.setup.error || state.warning;
   const local = state.service.local;
-  const busy = state.setup.busy || state.download.busy;
+  const busy = state.setup.busy || state.download.busy || state.localSetup.busy;
   return <div className="app-shell">
     <header className="app-header">
       <div className="brand"><span className="brand-mark">言</span><span>Kotoba<span className="brand-dot">.</span></span><span className="brand-caption">本地双语字幕</span></div>
@@ -141,6 +158,7 @@ function App() {
       </aside>
       <main className="main-content">
         <div className="page-heading"><div><div className="eyebrow">LISTEN. UNDERSTAND.</div><h1>听见声音，看懂每一句<span>。</span></h1><p>左侧选择应用开始监听，在这里设置语言和字幕。</p></div></div>
+        <LocalSetupCard state={state} run={run} />
         {issue && <div className="notice" role="alert"><Icon name="alert" size={17} /><span>{issue}</span>{error && <button aria-label="关闭错误" onClick={() => setError('')}><Icon name="close" size={14} /></button>}</div>}
         <div className="language-settings settings-card"><label>源语音语言<select aria-label="源语音语言" disabled={busy} value={state.languages.source} onChange={e => void run(() => window.kotoba.saveLanguages({ ...state.languages, source: e.target.value as AppState['languages']['source'] }))}>{Object.entries(SOURCE_LANGUAGES).map(([code, label]) => <option key={code} value={code}>{label}</option>)}</select></label><Icon name="arrow" /><label>译文语言<select aria-label="译文语言" disabled={busy} value={state.languages.target} onChange={e => void run(() => window.kotoba.saveLanguages({ ...state.languages, target: e.target.value as AppState['languages']['target'] }))}>{Object.entries(TARGET_LANGUAGES).map(([code, label]) => <option key={code} value={code}>{label}</option>)}</select></label><span className="language-note">{state.running ? '修改语言会暂停监听' : '自动检测按句判断；手动指定可跳过判断'}<small>{sourceLabel(state)} → {TARGET_LANGUAGES[state.languages.target]}</small></span></div>
         <div className="subtitle-workspace">

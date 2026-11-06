@@ -13,6 +13,8 @@ import { checkOllama, translate } from './ollama';
 import { WorkerClient } from './worker-client';
 import { receiveTranscript, receiveTranslation } from './subtitles';
 import { UpdateChecker } from './updates';
+import { LocalSetup, INITIAL_LOCAL_SETUP, defaultLocalConfiguration, LOCAL_OLLAMA_URL, INDEX_MODEL } from './local-setup';
+import { findOllama, installOllama, startOllama, probeLocalOllama, pullIndex } from './ollama-setup-runtime';
 
 app.setName('Kotoba');
 app.setAppUserModelId('local.kotoba.subtitles');
@@ -48,12 +50,36 @@ const state: AppState = {
   deviceChecked: null, warning: null, configPath, modelPath: '', ollamaUrl: '', ollamaModel: '',
   download: { busy: false, prepared: false, stage: 'idle', label: '尚未准备识别模型' },
   update: { currentVersion: app.getVersion(), status: 'idle', message: '手动检查 GitHub 更新（包含 Beta）' },
+  localSetup: { ...INITIAL_LOCAL_SETUP },
   languages: { ...DEFAULT_CONFIG.languages },
   service: { ...DEFAULT_CONFIG.translation, ollama: { ...DEFAULT_CONFIG.ollama }, hasKey: false, local: true },
   resolvedTheme: 'dark',
   metrics: { count: 0, p50: 0, p95: 0, dropped: 0 },
 };
 const updates = new UpdateChecker(app.getVersion(), value => { state.update = value; broadcast(); }, url => shell.openExternal(url));
+const localAppData = process.env.LOCALAPPDATA || path.join(app.getPath('home'), 'AppData', 'Local');
+const localSetup = new LocalSetup({
+  configuration: () => readConfig(configPath), probe: probeLocalOllama,
+  findRuntime: () => findOllama(localAppData),
+  installRuntime: (progress, signal) => installOllama(path.join(app.getPath('userData'), 'downloads'), localAppData, progress, signal),
+  startRuntime: startOllama, pullModel: pullIndex,
+  configure: async () => {
+    const latest = readConfig(configPath);
+    if (!defaultLocalConfiguration(latest)) throw new Error('本机模型已准备，但配置已被更改；未覆盖自定义服务，请重新选择服务后检查');
+    latest.ollama.baseUrl = LOCAL_OLLAMA_URL; latest.ollama.model = INDEX_MODEL;
+    saveJson(configPath, latest); config = latest; updateConfigState();
+  },
+}, value => { state.localSetup = value; broadcast(); });
+async function prepareLocalSetup() {
+  ensureConfigurationIdle();
+  if (state.running) throw new Error('请先暂停监听，再准备本机环境');
+  state.ready = false; state.deviceChecked = null; broadcast();
+  await localSetup.prepare();
+  if (localSetup.value.status === 'ready') {
+    if (modelPrepared(state.modelPath)) await checkConfiguration();
+    else { state.setup = { busy: false, stage: 'idle', label: '翻译环境已自动配置，请点击下载 Whisper 识别模型' }; broadcast(); }
+  }
+}
 function log(event: string, meta: Record<string, unknown> = {}) {
   try {
     mkdirSync(path.dirname(logFile), { recursive: true });
@@ -148,7 +174,7 @@ function handleDownload(message: Record<string, any>) {
   }
 }
 async function downloadModel() {
-  if (state.download.busy || checking || configuring || state.running) throw new Error('请先暂停监听，并等待当前下载或检查完成');
+  if (state.download.busy || checking || configuring || state.running || state.localSetup.busy) throw new Error('请先暂停监听，并等待当前下载或检查完成');
   config = readConfig(configPath); updateConfigState();
   if (modelPrepared(state.modelPath)) {
     state.download = { busy: false, prepared: true, stage: 'complete', label: '已找到现有识别模型，跳过下载' }; broadcast();
@@ -203,7 +229,7 @@ function handleWorker(message: Record<string, any>) {
   }
 }
 async function checkConfiguration() {
-  if (state.download.busy || checking || configuring) throw new Error('请等待当前下载或检查完成');
+  if (state.download.busy || checking || configuring || state.localSetup.busy) throw new Error('请等待当前下载或检查完成');
   checking = true;
   state.ready = false; state.deviceChecked = null; state.gpuChecked = false; state.warning = null;
   await stopCapture('正在检查配置与本地服务');
@@ -241,7 +267,7 @@ function updateConfigState() {
   }
 }
 function ensureConfigurationIdle() {
-  if (checking || state.download.busy || configuring) throw new Error('请等待当前下载或检查完成后再保存设置');
+  if (checking || state.download.busy || configuring || state.localSetup.busy) throw new Error('请等待当前下载或检查完成后再保存设置');
 }
 async function saveLanguages(value: Languages) {
   ensureConfigurationIdle();
@@ -265,14 +291,15 @@ async function saveService(value: ServiceUpdate) {
   saveJson(configPath, next); config = next; updateConfigState();
   state.ready = false; state.deviceChecked = null;
   state.setup = { busy: false, stage: 'idle', label: '服务配置已保存，请重新检查连接' }; broadcast();
+  void localSetup.detect();
   } finally { configuring = false; }
 }
 async function startCapture(candidate: unknown) {
-  if (!state.ready || state.setup.busy || state.download.busy || configuring) throw new Error('请先检查连接并完成识别模型自检');
+  if (!state.ready || state.setup.busy || state.download.busy || configuring || state.localSetup.busy) throw new Error('请先检查连接并完成识别模型自检');
   if (!candidate || typeof candidate !== 'object' || !Number.isSafeInteger((candidate as AudioApp).pid)) throw new Error('请选择有效的应用');
   const selected = (await listApps()).find(v => v.pid === (candidate as AudioApp).pid);
   if (!selected) throw new Error('应用已退出或尚未创建音频会话，请播放声音后刷新');
-  if (!state.ready || state.setup.busy || state.download.busy || configuring) throw new Error('配置正在变化，请稍后重新开始监听');
+  if (!state.ready || state.setup.busy || state.download.busy || configuring || state.localSetup.busy) throw new Error('配置正在变化，请稍后重新开始监听');
   await stopCapture();
   state.session = randomUUID(); state.running = true; state.selectedApp = selected; state.warning = null;
   state.subtitle = null; state.history = []; state.metrics = { count: 0, p50: 0, p95: 0, dropped: 0 }; sampleLatencies = [];
@@ -372,6 +399,9 @@ function registerIpc() {
   ipcMain.handle('config:service', controlOnly(saveService));
   ipcMain.handle('updates:check', controlOnly(() => updates.check()));
   ipcMain.handle('updates:open', controlOnly(target => updates.open(target)));
+  ipcMain.handle('local-setup:detect', controlOnly(() => { ensureConfigurationIdle(); return localSetup.detect(); }));
+  ipcMain.handle('local-setup:prepare', controlOnly(prepareLocalSetup));
+  ipcMain.handle('local-setup:cancel', controlOnly(() => localSetup.cancel()));
   ipcMain.handle('overlay:regions', (event, regions) => {
     if (event.sender.id !== overlay?.webContents.id || event.senderFrame !== event.sender.mainFrame) throw new Error('IPC access denied');
     if (!Array.isArray(regions) || regions.length > 2 || regions.some(r => !r || ['x', 'y', 'width', 'height'].some(k => !Number.isFinite(r[k]) || Math.abs(r[k]) > 10000))) throw new Error('Invalid overlay regions');
@@ -441,7 +471,7 @@ async function initialize() {
   const pauseRegistered = globalShortcut.register('CommandOrControl+Alt+S', () => { if (state.running) void stopCapture(); else if (state.selectedApp && state.ready) void startCapture(state.selectedApp).catch(e => { state.warning = errorText(e); broadcast(); }); });
   const hideRegistered = globalShortcut.register('CommandOrControl+Alt+H', () => updateSettings({ overlayVisible: !state.settings.overlayVisible }));
   if (!pauseRegistered || !hideRegistered) state.warning = '部分快捷键已被占用，可通过托盘操作';
-  broadcast(); log('application_started');
+  broadcast(); log('application_started'); void localSetup.detect();
 }
 if (!app.requestSingleInstanceLock()) app.quit();
 else {
@@ -449,5 +479,5 @@ else {
   app.whenReady().then(initialize).catch(e => { log('startup_failed'); console.error(errorText(e)); app.quit(); });
   app.on('activate', showController);
   app.on('window-all-closed', () => {});
-  app.on('before-quit', () => { quitting = true; translation.reset(null); worker?.dispose(); worker = null; clearTimeout(deviceTimer); clearTimeout(saveTimer); clearInterval(pointerTimer); persistSettings(); globalShortcut.unregisterAll(); tray?.destroy(); });
+  app.on('before-quit', () => { quitting = true; localSetup.dispose(); translation.reset(null); worker?.dispose(); worker = null; clearTimeout(deviceTimer); clearTimeout(saveTimer); clearInterval(pointerTimer); persistSettings(); globalShortcut.unregisterAll(); tray?.destroy(); });
 }

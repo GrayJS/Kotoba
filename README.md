@@ -8,8 +8,8 @@ Windows 11 桌面程序：选择一个正在播放声音的应用，通过本地
 
 ## 日常使用
 
-1. 安装并启动 Ollama，准备翻译模型 `hf.co/IndexTeam/Index-Translate-2B-GGUF:Q4_K_M`。
-   可使用 Ollama 自带界面管理模型；命令行用户可运行 `ollama pull hf.co/IndexTeam/Index-Translate-2B-GGUF:Q4_K_M`。
+1. 启动 Kotoba。默认本机模式会检测 Ollama 和 Index：缺少时，点击主界面的“一键安装 Ollama + Index 并自动配置”。
+   已安装 Ollama 时只需启动服务或准备缺少的 Index 模型；已有有效组件直接复用。
 2. 启动 Kotoba，点击左侧“一键下载识别模型”。Whisper 下载无需命令行或填写路径。
    展开“模型服务设置”，可修改 Ollama 地址、模型、超时和驻留时间，也可改用兼容 API。
 3. 点击“重新检查连接”。首次预热需要加载两个模型；通过 GPU/CPU 真实推理自检后才能开始。
@@ -33,6 +33,24 @@ Windows 11 桌面程序：选择一个正在播放声音的应用，通过本地
 关闭控制台会留在系统托盘。使用托盘菜单退出程序。
 `Ctrl+Alt+S` 开始/暂停监听，`Ctrl+Alt+H` 显示/隐藏字幕；快捷键被占用时会提示。
 
+## 一键准备本机翻译环境
+
+默认日语→简体中文配置无需手动填写路径或模型名。程序启动后检测本机 Ollama 服务、已安装的运行组件及默认
+`hf.co/IndexTeam/Index-Translate-2B-GGUF:Q4_K_M` 模型，缺少时显示提示，由用户点击后安装。
+新电脑按需从 Ollama 官方 GitHub 下载固定的 `v0.40.15/OllamaSetup.exe`（约 1.69 GB），
+通过固定 SHA-256 校验后，以当前用户权限调用官方安装程序；启动服务仅监听 `127.0.0.1:11434`。
+已存在的服务或运行组件会复用，不为其重新安装另一份 Ollama。安装包缓存位于 `%APPDATA%\Kotoba\downloads`。
+
+**进度在 Kotoba 应用内显示**：Ollama 安装包下载显示已下载字节、总大小与百分比，校验/安装/服务启动显示明确阶段；
+Index 下载通过 Ollama 的流式 API 显示当前模型文件的字节进度与百分比，后续还有校验和保存状态。
+无法计算比例时显示不确定进度条，不制造整体百分比。下载阶段可取消、失败可重试；安装包支持服务端允许时断点续传，
+模型下载复用 Ollama 缓存。官方安装程序正在写入文件时不提供强制取消。
+
+成功后自动保存本机地址与 Index 模型名，验证模型已出现在服务列表中；若 Whisper 已准备则继续连接和 GPU/CPU 自检，
+否则提示在左侧准备 Whisper。不会自动切换 CPU。自定义地址、模型或兼容 API 不会被默认环境安装覆盖，
+检测会显示保留现有配置；若用户在准备期间手动改动配置文件，完成时也不会强行覆盖。
+本功能仅支持 Windows x64；首次需要能访问 GitHub、Hugging Face / 模型源以及足够的磁盘空间。
+
 ## 检查更新
 
 左侧版本区点击“检查更新”，主动查询本项目 [GitHub Releases](https://github.com/GrayJS/Kotoba/releases)，
@@ -48,7 +66,7 @@ Windows 11 桌面程序：选择一个正在播放声音的应用，通过本地
 首次启动会创建默认配置。程序左下角显示当前配置的完整位置。
 也可使用 `--config="D:\path\config.json"` 或 `KOTOBA_CONFIG` 指定配置文件。
 界面即可保存服务和语言，无需编辑 JSON；修改文件后点击“重新检查连接”生效。
-程序不会自动安装 Ollama 或拉取 Ollama 翻译模型；Whisper 下载由用户点击触发。
+程序启动时只检测，不自动下载；Ollama/Index 一键安装与 Whisper 下载均由用户在应用内点击触发。
 升级保留已有自定义模型和地址，旧配置缺失的新字段自动使用兼容默认值。
 
 ```json
@@ -150,7 +168,7 @@ npm run dist
 
 `release/` 包含 x64 安装包和可直接启动的 `win-unpacked/` 目录。
 运行安装版无需系统 Python 或 Node.js；Python、推理依赖、音频采集组件及 GPU DLL 随安装包附带。
-本机翻译需外部 Ollama 和相应翻译模型，Whisper 在应用内下载。模型准备后本机 Ollama 模式可离线使用。
+本机翻译需 Ollama 和相应翻译模型，缺少时可在应用内一键准备；Whisper 也在应用内下载。模型准备后本机模式可离线使用。
 模型不打入安装包，因此可替换模型而不重新打包程序。
 
 ## 验证工具
@@ -163,6 +181,9 @@ npm run dist
   多语言保存、兼容 API 本地 mock、Windows 密钥加密、GPU 检查、无编辑模式的原生拖动、浅/深色布局和重启持久化。
   下载完成分支使用真实模型文件的硬链接缓存，不会重复下载 1.6 GB 权重。
 - `scripts/updates-smoke.mjs`：更新界面、主进程受限 IPC、Beta mock、可信链接、网络失败重试、浅/深色及真实 GitHub 查询。
+- `scripts/local-setup-smoke.mjs`：默认环境检测提示、流式模型进度、失败重试、自动配置、已有模型复用、自定义服务保留及安装进度 UI。
+  缺少运行环境的协调流程与下载续传/校验使用本地 mock 测试；不卸载本机 Ollama 来模拟干净系统。
+- `scripts/local-reuse-smoke.mjs`：使用真实已有 Ollama、Index 与 Whisper，验证跳过下载、自动配置和实际推理自检。
 - `scripts/host-exit-smoke.mjs`：主程序异常退出后，识别进程自动清理。
 - `scripts/dev-smoke.mjs`：验证 Vite 开发模式及开发用 CSP nonce。
 - `scripts/prepare-fixtures.py`：显式下载 3 条公开 JSUT 日语测试音频，仅保存到忽略的构建目录。

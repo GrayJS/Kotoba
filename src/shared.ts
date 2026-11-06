@@ -25,6 +25,11 @@ export interface UpdateState {
   currentVersion: string; status: 'idle' | 'checking' | 'latest' | 'available' | 'error'; message: string;
   version?: string; prerelease?: boolean; releaseUrl?: string; downloadUrl?: string;
 }
+export interface LocalSetupState {
+  status: 'idle' | 'detecting' | 'missing-runtime' | 'stopped' | 'missing-model' | 'installing' | 'ready' | 'error' | 'custom';
+  busy: boolean; eligible: boolean; hasRuntime: boolean; hasModel: boolean;
+  stage: string; label: string; percent?: number; completedBytes?: number; totalBytes?: number; error?: string;
+}
 export interface AppState {
   settings: Settings; running: boolean; session: string | null; selectedApp: AudioApp | null;
   status: string; level: number; subtitle: Subtitle | null; history: Subtitle[]; setup: SetupProgress;
@@ -32,6 +37,7 @@ export interface AppState {
   configPath: string; modelPath: string; ollamaUrl: string; ollamaModel: string;
   download: SetupProgress & { prepared: boolean };
   update: UpdateState;
+  localSetup: LocalSetupState;
   languages: Languages; service: ServiceSettings & { hasKey: boolean; local: boolean }; resolvedTheme: 'light' | 'dark';
   metrics: { count: number; p50: number; p95: number; dropped: number; firstTextMs?: number; firstChineseMs?: number; recognitionMs?: number; translationMs?: number; queueMs?: number };
 }
@@ -44,6 +50,7 @@ export interface Bridge {
   overlayRegions(regions: { x: number; y: number; width: number; height: number }[]): Promise<void>;
   dragOverlay(phase: 'start' | 'move' | 'end'): Promise<void>;
   checkUpdates(): Promise<void>; openUpdate(target: 'release' | 'download'): Promise<void>;
+  detectLocalSetup(): Promise<void>; prepareLocalSetup(): Promise<void>; cancelLocalSetup(): Promise<void>;
   onState(callback: (state: AppState) => void): () => void;
 }
 export const DEFAULT_SETTINGS: Settings = { device: 'cuda', fontSize: 28, opacity: 0.68, width: 1000, bilingual: true, overlayVisible: true, editMode: false, liveSubtitles: true, theme: 'system' };

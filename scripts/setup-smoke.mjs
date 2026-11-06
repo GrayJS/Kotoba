@@ -71,7 +71,7 @@ try {
   await page.getByLabel('译文语言', { exact: true }).selectOption('en'); await wait(page, s => s.languages.target === 'en');
   await page.getByLabel('源语音语言').selectOption('en'); await wait(page, s => s.languages.source === 'en');
   await page.getByLabel('源语音语言').selectOption('auto'); await wait(page, s => s.languages.source === 'auto');
-  await page.locator('.service-panel summary').click();
+  assert.equal(await page.locator('.service-panel').getAttribute('open'), '');
   await page.getByLabel('翻译服务', { exact: true }).selectOption('compatible');
   await page.getByLabel('服务地址', { exact: true }).fill(`http://127.0.0.1:${server.address().port}/v1`);
   await page.getByLabel('模型名称', { exact: true }).fill('mock-translator');

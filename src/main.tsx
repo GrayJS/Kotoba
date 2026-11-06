@@ -69,8 +69,9 @@ function ServiceForm({ state, run }: { state: AppState; run: (action: () => Prom
   const busy = state.setup.busy || state.download.busy || state.localSetup.busy;
   const patch = (value: Partial<ServiceSettings['ollama']>) => { setSaved(false); setDraft(old => ({ ...old, [provider === 'ollama' ? 'ollama' : 'compatible']: { ...active, ...value } })); };
   useEffect(() => { setDraft(structuredClone(state.service)); }, [JSON.stringify(state.service)]);
-  return <details className="settings-card service-panel">
+  return <details className="settings-card service-panel" open>
     <summary>模型服务设置 <span>{state.service.provider === 'ollama' ? 'Ollama' : '兼容 API'} · {state.service.local ? '本机服务' : '远端服务'}</span></summary>
+    <LocalSetupCard state={state} run={run} />
     <form onSubmit={e => { e.preventDefault(); void run(async () => { await window.kotoba.saveService({ ...draft, apiKey: apiKey || undefined, clearKey }); setApiKey(''); setClearKey(false); setSaved(true); }); }}>
       <fieldset disabled={busy}>
         <div className="form-grid">
@@ -158,7 +159,6 @@ function App() {
       </aside>
       <main className="main-content">
         <div className="page-heading"><div><div className="eyebrow">LISTEN. UNDERSTAND.</div><h1>听见声音，看懂每一句<span>。</span></h1><p>左侧选择应用开始监听，在这里设置语言和字幕。</p></div></div>
-        <LocalSetupCard state={state} run={run} />
         {issue && <div className="notice" role="alert"><Icon name="alert" size={17} /><span>{issue}</span>{error && <button aria-label="关闭错误" onClick={() => setError('')}><Icon name="close" size={14} /></button>}</div>}
         <div className="language-settings settings-card"><label>源语音语言<select aria-label="源语音语言" disabled={busy} value={state.languages.source} onChange={e => void run(() => window.kotoba.saveLanguages({ ...state.languages, source: e.target.value as AppState['languages']['source'] }))}>{Object.entries(SOURCE_LANGUAGES).map(([code, label]) => <option key={code} value={code}>{label}</option>)}</select></label><Icon name="arrow" /><label>译文语言<select aria-label="译文语言" disabled={busy} value={state.languages.target} onChange={e => void run(() => window.kotoba.saveLanguages({ ...state.languages, target: e.target.value as AppState['languages']['target'] }))}>{Object.entries(TARGET_LANGUAGES).map(([code, label]) => <option key={code} value={code}>{label}</option>)}</select></label><span className="language-note">{state.running ? '修改语言会暂停监听' : '自动检测按句判断；手动指定可跳过判断'}<small>{sourceLabel(state)} → {TARGET_LANGUAGES[state.languages.target]}</small></span></div>
         <div className="subtitle-workspace">

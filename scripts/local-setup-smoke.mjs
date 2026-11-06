@@ -50,7 +50,8 @@ try {
   });
   await page.evaluate(() => window.kotoba.detectLocalSetup());
   await wait(page, s => s.localSetup.status === 'missing-model');
-  const card = page.getByRole('region', { name: '本机翻译环境' });
+  assert.equal(await page.locator('.service-panel').getAttribute('open'), '');
+  const card = page.locator('.service-panel').getByRole('region', { name: '本机翻译环境' });
   await card.getByRole('button', { name: '一键准备 Index 并自动配置' }).click();
   await wait(page, s => s.localSetup.percent === 25);
   assert.equal(await card.getByRole('progressbar').getAttribute('value'), '25');
